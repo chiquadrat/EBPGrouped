@@ -1,20 +1,5 @@
-#################################################
-#
-# Function: lmeclass
-# Fitting Linear Mixed-Effects Models with classified dependet variable
-#
-#################################################
-
-#library(truncnorm)
-#library(lme4)
-
-####################################################################################
-#
-# Function lmeclass
-#
-####################################################################################
-
-
+#Author: Paul Walter
+#Mail: paul.walter@fu-berlin.de
 
 SEM_lme <- function(data, classes, formula, burnin = 2, samples = 5) {
 
@@ -30,25 +15,25 @@ SEM_lme <- function(data, classes, formula, burnin = 2, samples = 5) {
 
 
 
-  intervals <- vector("list", length(classes) -  1)# Liste mit intervalgrenzen
+  intervals <- vector("list", length(classes) -  1)
 
 
-  for (i in seq(length = length(classes) - 1)) { # Liste mit intervalgrenzen erstellen
+  for (i in seq(length = length(classes) - 1)) { 
     intervals[[i]] <- c(classes[i], classes[i +1])
   }
 
-  means <- sapply(intervals, mean) # Klassenmittelwerte
-  widths <- sapply(intervals, function(x) x[2] - x[1]) #Klassenbreiten
-  meanWidth <- mean(widths[!is.infinite(widths)]) # Durchschnittliche Klassenbreite (ohne unendlich)
-  negInf <- is.infinite(means) & means < 0 # Gibt es negative unendliche klassen
+  means <- sapply(intervals, mean) 
+  widths <- sapply(intervals, function(x) x[2] - x[1]) 
+  meanWidth <- mean(widths[!is.infinite(widths)]) 
+  negInf <- is.infinite(means) & means < 0 
 
   if (any(negInf)) {
     means[negInf] <- sapply(intervals[negInf], function(x) (x[2] +  (x[2]-
                                                                        meanWidth))/2)
   }
-  posInf <- is.infinite(means) & means > 0 # Gibt es positive unendliche klassen
+  posInf <- is.infinite(means) & means > 0 
   if (any(posInf)) {
-    means[posInf] <- sapply(intervals[posInf], function(x) (x[1]+(x[1] + # wenn ja, dann Inf ersetzten mit durchschnittlicher klassenbreite
+    means[posInf] <- sapply(intervals[posInf], function(x) (x[1]+(x[1] + 
                                                                     meanWidth))/2)
   }
 
@@ -57,11 +42,6 @@ SEM_lme <- function(data, classes, formula, burnin = 2, samples = 5) {
 
   levels(yclass) <- yclassmeans
   data$pseudoy <- as.numeric(as.vector(yclass))
-
- # for (i in 1:nrow(data)) {
-#    data$lower[i] <- max(classes[data$y[i]>=classes])
-#    data$upper[i] <- min(classes[data$y[i]<=classes])
-#  }
 
 
   regclass0 <- lmer(formula,data=data )

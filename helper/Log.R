@@ -1,7 +1,5 @@
-#
-# log-Transformation Function 
-#
-
+#Author: Paul Walter
+#Mail: paul.walter@fu-berlin.de
 
 log_function <- function(y, inv = FALSE,  m=0) {
   

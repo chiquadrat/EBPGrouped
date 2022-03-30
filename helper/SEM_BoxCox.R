@@ -1,23 +1,8 @@
-#################################################
-#
-# Function: lmeclass
-# Fitting Linear Mixed-Effects Models with classified dependet variable
-#
-#################################################
-
-#library(truncnorm)
-#library(lme4)
-
-####################################################################################
-#
-# Function lmeclass
-#
-####################################################################################
-
-
+#Author: Paul Walter
+#Mail: paul.walter@fu-berlin.de
 
 SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
-  #set.seed(100)
+
   data2 <- data
   
   yclass <- data$yclass
@@ -30,25 +15,25 @@ SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
   formula <- as.formula(gsub(".*~","pseudoy~",formula))
   
   
-  intervals <- vector("list", length(classes) -  1)# Liste mit intervalgrenzen
+  intervals <- vector("list", length(classes) -  1)
   
   
-  for (i in seq(length = length(classes) - 1)) { # Liste mit intervalgrenzen erstellen
+  for (i in seq(length = length(classes) - 1)) { 
     intervals[[i]] <- c(classes[i], classes[i +1])
   }
   
-  means <- sapply(intervals, mean) # Klassenmittelwerte
-  widths <- sapply(intervals, function(x) x[2] - x[1]) #Klassenbreiten
-  meanWidth <- mean(widths[!is.infinite(widths)]) # Durchschnittliche Klassenbreite (ohne unendlich)
-  negInf <- is.infinite(means) & means < 0 # Gibt es negative unendliche klassen
+  means <- sapply(intervals, mean) 
+  widths <- sapply(intervals, function(x) x[2] - x[1]) 
+  meanWidth <- mean(widths[!is.infinite(widths)]) 
+  negInf <- is.infinite(means) & means < 0 
   
   if (any(negInf)) {
     means[negInf] <- sapply(intervals[negInf], function(x) (x[2] -  (x[2]-
                                                                        meanWidth))/2)
   }
-  posInf <- is.infinite(means) & means > 0 # Gibt es positive unendliche klassen
+  posInf <- is.infinite(means) & means > 0 
   if (any(posInf)) {
-    means[posInf] <- sapply(intervals[posInf], function(x) (x[1]+(x[1] + # wenn ja, dann Inf ersetzten mit durchschnittlicher klassenbreite
+    means[posInf] <- sapply(intervals[posInf], function(x) (x[1]+(x[1] + 
                                                                     meanWidth))/2)
   }
   
@@ -58,30 +43,22 @@ SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
   levels(yclass) <- yclassmeans
   data$pseudoy <- as.numeric(as.vector(yclass))
   
-  
-#  for (i in 1:nrow(data)) {
-#    data$lower[i] <- max(classes[data$y[i]>=classes])
-#    data$upper[i] <- min(classes[data$y[i]<=classes])
-#  }
-  
-  # Formel fuer die BoxCox-Transformation kompatibel machen
   formelBoxCox <- as.character(formula)
   formelBoxCox <- sub("\\s+\\+\\s+\\(.*", "", formelBoxCox)
   formelBoxCox <- gsub("pseudoy", "y", formelBoxCox)
   formelBoxCox <- as.formula(formelBoxCox)
   
-  # Transformieren der pseudo y
   data$yold <- data$y
   data$y <- data$pseudoy
-  source("BoxCox_function_final.R")
+  source("helper/BoxCox.R")
   BoxCox <- boxcox(dat=data, inverse=FALSE, formula = formelBoxCox)
   BoxCox_y <- BoxCox[[1]]
   BoxCox_m <- BoxCox[[2]]
   BoxCox_lambda <- BoxCox[[3]]
   data$pseudoy <- BoxCox_y
   
-  # Transformieren der KLassen
-  source("BoxCox_function_final.R")
+
+  source("helper/BoxCox.R")
   BoxCoxClasses <- boxcox(dat=classes,lambda = BoxCox_lambda, inverse=FALSE)
   classesBox <- BoxCoxClasses[[1]]
   classesM <- BoxCoxClasses[[2]]
@@ -113,46 +90,34 @@ SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
     result_lambda[j] <- BoxCox_lambda
     result_m[j] <- BoxCox_m
     
-    # Jetzt die Daten Rücktransformieren
     data$y <- data$pseudoy
     rueck <- boxcox(dat=data, m=BoxCox_m, lambda = BoxCox_lambda, inverse = T)
     data$y <- rueck[[1]]
-    #For the bias check of the back transformation
     resulty[,j] <- rueck[[1]]
     
-    # Jetzt die Daten erneut transformieren
-    source("BoxCox_function_final.R")
+    source("helper/BoxCox.R")
     BoxCox <- boxcox(dat=data, inverse=FALSE, formula = formelBoxCox)
     BoxCox_y <- BoxCox[[1]]
     BoxCox_m <- BoxCox[[2]]
     BoxCox_lambda <- BoxCox[[3]]
     data$pseudoy <- BoxCox_y
     
-    
-    # Jetzt die Klassen neu transformieren
-    source("BoxCox_function_final.R")
+    source("helper/BoxCox.R")
     BoxCoxClasses <- boxcox(dat=classes,lambda = BoxCox_lambda,  inverse=FALSE)
     classesBox <- BoxCoxClasses[[1]]
     classesM <- BoxCoxClasses[[2]]
     
-    # Jetzt das Modell neu berechnen
     regclass=lmer(formula,data=data )
     
-    # Hier nur speichern von verschiedenen sachen
     resultcoef[,j] <- regclass@beta
     result_ranef[,j]<-unname(unlist(ranef(regclass)))
     result_sigmae[j]<- sigmahat
     result_sigmau[j]<-as.data.frame(VarCorr(regclass))$sdcor[1]                  
-    #resulty[,j] <- data$pseudoy
-   # print(paste("Iteration:", j, "of", it_lambda))
   }
   
-  
-  # Jetzt mit dem optimierten Lambda, die Daten transformieren und den Algorithmus erneut berechnen
   lambda <- mean(result_lambda[-c(1:(burnin*5))])
   
-  # Jetzt die Klassen neu transformieren
-  source("BoxCox_function_final.R")
+  source("helper/BoxCox.R")
   BoxCoxClasses <- boxcox(dat=classes,lambda = lambda,  inverse=FALSE)
   classesBox <- BoxCoxClasses[[1]]
   classesM <- BoxCoxClasses[[2]]
@@ -166,28 +131,24 @@ SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
   yclassl <- as.numeric(as.vector(yclassl))
   data$yclassl <- yclassl
   
+  intervals <- vector("list", length(classes) -  1)
   
-  #formula <- as.formula(gsub(".*~","pseudoy~",formula))
-  
-  intervals <- vector("list", length(classes) -  1)# Liste mit intervalgrenzen
-  
-  
-  for (i in seq(length = length(classes) - 1)) { # Liste mit intervalgrenzen erstellen
+  for (i in seq(length = length(classes) - 1)) { 
     intervals[[i]] <- c(classes[i], classes[i +1])
   }
   
-  means <- sapply(intervals, mean) # Klassenmittelwerte
-  widths <- sapply(intervals, function(x) x[2] - x[1]) #Klassenbreiten
-  meanWidth <- mean(widths[!is.infinite(widths)]) # Durchschnittliche Klassenbreite (ohne unendlich)
-  negInf <- is.infinite(means) & means < 0 # Gibt es negative unendliche klassen
+  means <- sapply(intervals, mean) 
+  widths <- sapply(intervals, function(x) x[2] - x[1]) 
+  meanWidth <- mean(widths[!is.infinite(widths)]) 
+  negInf <- is.infinite(means) & means < 0 
   
   if (any(negInf)) {
     means[negInf] <- sapply(intervals[negInf], function(x) (x[2] -  (x[2]-
                                                                        meanWidth))/2)
   }
-  posInf <- is.infinite(means) & means > 0 # Gibt es positive unendliche klassen
+  posInf <- is.infinite(means) & means > 0 
   if (any(posInf)) {
-    means[posInf] <- sapply(intervals[posInf], function(x) (x[1]+(x[1] + # wenn ja, dann Inf ersetzten mit durchschnittlicher klassenbreite
+    means[posInf] <- sapply(intervals[posInf], function(x) (x[1]+(x[1] + 
                                                                     meanWidth))/2)
   }
   
@@ -196,12 +157,6 @@ SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
   
   levels(yclass) <- yclassmeans
   data$pseudoy <- as.numeric(as.vector(yclass))
-  
-  # for (i in 1:nrow(data)) {
-  #    data$lower[i] <- max(classes[data$y[i]>=classes])
-  #    data$upper[i] <- min(classes[data$y[i]<=classes])
-  #  }
-  
   
   regclass0 <- lmer(formula,data=data )
   regclass <- lmer(formula,data=data )
@@ -230,7 +185,6 @@ SEM_lme_BoxCox <- function(data, classes, formula, burnin = 2, samples = 5) {
     result_sigmau_step2[j]<-as.data.frame(VarCorr(regclass))$sdcor[1]                  
     resulty[,j] <- data$pseudoy
     result_std.error_step2[,j] <- unname((summary(regclass)$coefficients)[,2])
-    # print(paste("Iteration:", j, "of", burnin + samples))
   }
   
   est <- list(data=data, resultY = resulty, coef = resultcoef_step2, ranef = result_ranef_step2, 

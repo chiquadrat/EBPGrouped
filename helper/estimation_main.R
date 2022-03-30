@@ -1,5 +1,8 @@
-mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE=FALSE , B=5,
-               burnin=5, samples=20, classes, method="LME", terminate = 0.01, transformation ="none"){
+#Author: Paul Walter
+#Mail: paul.walter@fu-berlin.de
+
+EBP = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE=FALSE , B=5,
+               burnin=5, samples=20, classes, method="LME", transformation ="none"){
   
   
   # General Variable Definitions ---------------------------------
@@ -77,19 +80,6 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
   
   if (transformation=="none") {
     
-    if (method=="MID") {    
-      
-      source("MID_lme_function.R")
-      MID <- MID_lme(data = sampleEBP, classes, formula)
-      coef <- MID$coef
-      ranef <- MID$ranef
-      sigmae <- MID$sigmae
-      sigmau <- MID$sigmau
-      m <- NULL
-      lambda <- NULL
-      itEM <- NULL
-    }
-    
     
     if (method=="LME") {    
       lmreg <- lmer(formula, data=sampleEBP)  
@@ -104,7 +94,7 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
   
     if (method=="SEM") {
       
-      source("SEM_lme_function.R")
+      source("helper/SEM.R")
       SEM <- SEM_lme(data=sampleEBP, classes=classes, formula, burnin, samples)
       coef <- apply(SEM$coef[,-c(1:burnin)],1,mean)
       ranef <- apply(SEM$ranef[,-c(1:burnin)],1,mean)
@@ -115,24 +105,13 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
       itEM <- NULL
     }
   
-    if (method=="EM") {
-      source("EM_lme_function.R")
-      EM <- EM_lme(data=sampleEBP, classes=classes, formula, terminate = terminate)
-      coef <- EM$coef[,ncol(EM$coef)]
-      ranef <- EM$ranef[,ncol(EM$ranef)]
-      sigmae <- EM$sigmae[,ncol(EM$sigmae)]
-      sigmau <- EM$sigmau[,ncol(EM$sigmau)]
-      m <- NULL
-      lambda <- NULL
-      itEM <- EM$iteration
-    }
   }
   
   if (transformation=="log") {
     if (method=="LME") {    
       
       # Transform data
-      source("Log_function_final.R")
+      source("helper/Log.R")
       daten <- log_function(y = sampleEBP$y)
       sampleEBP$y <- daten[[1]]
       m <- daten[[2]]
@@ -147,14 +126,14 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
     
     if (method=="SEM") {
       # Transform classes
-      source("Log_function_final.R")
+      source("helper/Log.R")
       daten <- log_function(y = classes)
       classesLog <- daten[[1]]
       m <- daten[[2]]
       lambda <- NULL
       itEM <- NULL
             
-      source("SEM_lme_function.R")
+      source("helper/SEM.R")
       SEM <- SEM_lme(data=sampleEBP, classesLog, formula, burnin, samples)
       coef <- apply(SEM$coef[,-c(1:burnin)],1,mean)
       ranef <- apply(SEM$ranef[,-c(1:burnin)],1,mean)
@@ -162,27 +141,11 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
       sigmau <- mean(SEM$sigmau[-c(1:burnin)])
     }
     
-    if (method=="EM") {
-      # Transform classes
-      source("Log_function_final.R")
-      daten <- log_function(y = classes)
-      classesLog <- daten[[1]]
-      m <- daten[[2]]
-      lambda <- NULL
-            
-      source("EM_lme_function.R")
-      EM <- EM_lme(data=sampleEBP, classesLog, formula, terminate = terminate)
-      coef <- EM$coef[,ncol(EM$coef)]
-      ranef <- EM$ranef[,ncol(EM$ranef)]
-      sigmae <- EM$sigmae[,ncol(EM$sigmae)]
-      sigmau <- EM$sigmau[,ncol(EM$sigmau)]
-      itEM <- EM$iteration
-    }
   }
   
   if (transformation=="box") {
     if (method=="LME") {    
-      source("BoxCox_function_final.R")
+      source("helper/BoxCox.R")
       sampBox <- boxcox(dat=sampleEBP, inverse = FALSE, formula = formulaFix)
       #samp_dataBox <- samp_data
       sampleEBP$y <- sampBox[[1]]
@@ -200,7 +163,7 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
     }
     
     if (method=="SEM") {
-      source("SEM_lme_function_BoxCox.R")
+      source("helper/SEM_BoxCox.R")
       SEM <- SEM_lme_BoxCox(data=sampleEBP, classes, formula, burnin, samples)
       coef <- apply(SEM$coef[,-c(1:burnin)],1,mean)
       ranef <- apply(SEM$ranef[,-c(1:burnin)],1,mean)
@@ -211,19 +174,6 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
       itEM <- NULL
     }
     
-    if (method=="EM") {
-      source("EM_lme_function_BoxCox.R")
-      EM <- EM_lme_BoxCox(data=sampleEBP, classes, formula, terminate = terminate)
-      coef <- EM$coef[,ncol(EM$coef)]
-      ranef <- EM$ranef[,ncol(EM$ranef)]
-      sigmae <- EM$sigmae[,ncol(EM$sigmae)]
-      sigmau <- EM$sigmau[,ncol(EM$sigmau)]
-      m <- EM$m[1]
-      lambda <- EM$lambda[length(EM$lambda)]
-      itEM <- EM$iteration
-      
-      
-    }
   }
   
   
@@ -258,13 +208,13 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
     y_pred = mu + eps + vu
     
     if (transformation=="log") {
-      source("Log_function_final.R")
+      source("helper/Log.R")
       y_pred <- log_function(y=y_pred, inv=T, m=m)[[1]]
     }
     
     if (transformation=="box") {
       y_pre_vec <- y_pred[,1]
-      source("BoxCox_function_final.R")
+      source("helper/BoxCox.R")
       y_pre_vec <- boxcox(dat=y_pre_vec, m=m, lambda = lambda,  inv=T)[[1]]
       y_pred[,1]<-y_pre_vec
     }
@@ -337,13 +287,13 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
     #Y_smp_b = transformation(y=Y_smp_b, l=optpar_, inv=T, m=par_m_)$y
     
     if (transformation=="log") {
-      source("Log_function_final.R")
+      source("helper/Log.R")
       Y_smp_b <- log_function(y=Y_smp_b, inv=T, m=m_)[[1]]
     }
     
     if (transformation=="box") {
       y_pre_vec <- Y_smp_b[,1]
-      source("BoxCox_function_final.R")
+      source("helper/BoxCox.R")
       y_pre_vec <- boxcox(dat=y_pre_vec, m=m_, lambda = lambda_,  inv=T)[[1]]
       Y_smp_b[,1]<-y_pre_vec
     }
@@ -355,13 +305,13 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
     
     #Y_uni_b = transformation(y=Y_uni_b, l=optpar_, inv=T, m=par_m_)$y
     if (transformation=="log") {
-      source("Log_function_final.R")
+      source("helper/Log.R")
       Y_uni_b <- log_function(y=Y_uni_b, inv=T, m=m_)[[1]]
     }
     
     if (transformation=="box") {
       y_pre_vec <- Y_uni_b[,1]
-      source("BoxCox_function_final.R")
+      source("helper/BoxCox.R")
       y_pre_vec <- boxcox(dat=y_pre_vec, m=m_, lambda = lambda_,  inv=T)[[1]]
       Y_uni_b[,1]<-y_pre_vec
     }
@@ -389,8 +339,8 @@ mse = function(formulaFix, formula, population , sample, L=5, threshold=0.5, MSE
   
   Pov_ests = point_estim(Y_smp = Y_smp, classify = "FALSE") 
 
-  mu_smp = X_smp %*% Pov_ests$betas #+ Pov_ests$rand_eff_smp # fehlt hier der random effekt?!?!
-  mu_uni = X_uni %*% Pov_ests$betas #+ Pov_ests$rand_eff_uni # fehlt hier der random effekt?!?!
+  mu_smp = X_smp %*% Pov_ests$betas 
+  mu_uni = X_uni %*% Pov_ests$betas 
 
   if (MSE)
   {

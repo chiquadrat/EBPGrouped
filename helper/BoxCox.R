@@ -1,43 +1,9 @@
-#Erstmal nur die tranformation testen
-
-# erstmal daten laden
-#load("H:/Doktor2/R-Code/Data_transformation.RData")  
-#setwd("H:/Doktor2/R-Code/Functions/Paul")
-
-# Formel spezifizieren
-# Nur fixe effects
-#formel <- as.formula(y~x)
-#l <- 5
-#formula <- "y ~ x + (1|clusterid)"
+#Author: Paul Walter
+#Mail: paul.walter@fu-berlin.de
 
 boxcox <- function(dat, lambda=NULL, m=NULL, inverse, formula=as.formula("y~x")){
 
 lambda_new <- NULL
-
-#calc_keepPop=function(dat)
-#{
-#  attr(dat, "pop")=dat
-#  dat
-#}
-
-
-#trunc = function(DAT, th)
-#{
-#  fil = DAT$y < th 
-#  DAT$y[fil] = th  
-#  return(DAT)
-#}
-
-#sampler=function(DAT){
-#  smp=as.data.frame(matrix(nrow=sum(sample_size) , ncol=ncol(DAT)))
-#  brd=append(0,cumsum(sample_size))
-#  for(i in 1:Domains){
-#    smp[((brd[i]+1):brd[i+1]),]=(DAT[DAT$idD==i,])[sample(1:sum(DAT$idD==i),size=sample_size[i]),]
-#  }
-#  attr(smp,"pop")=DAT
-#  colnames(smp)=colnames(DAT)
-#  return(smp)
-#}
 
 
 
@@ -116,29 +82,6 @@ sd_box = function(y, l, m)
   return(y)
 }
 
-
-
-
-
-
-
-
-# Estimation cvm
-
-#to_opt_Box <- function(l, y, dat,m){
-#  dat$y <- Box(l,y,F,m)$y
-#  mod <- lme(y~x, random=~1|idD,method="REML",data = dat)
-  #beta schätung unter l fix
-#  res=residuals(mod,level=0,type="pearson")
-#  step.length=10^-4
-#  eval.probs=seq(0,1, by=step.length)
-#  eval.points = qnorm(eval.probs,mean=mean(res), sd=sd(res))
-#  test.probs = ecdf(res)(eval.points)
-#  difs=eval.probs - test.probs # abstand cdf norm zu ecd
-  #print(select_john(z = 1, res))
-#  result = sum((difs)^2)#cramer von mises
-#  return(result)
-#}
 
 
 
